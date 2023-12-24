@@ -1,0 +1,38 @@
+version: '3.7'
+services:
+  tracking-server:
+    container_name: tracking-server
+    build:
+      context: ./tracking-server
+      dockerfile: Dockerfile
+    expose:
+      - 80
+    restart: always
+    environment:
+      TZ: Asia/Tokyo
+    command: >
+      mlflow server --backend-store-uri 'sqlite:///./sqlite/data/mlruns.db'
+      --host 0.0.0.0 --port 80
+    volumes:
+      - ./tracking-server/sqlite/data:/mlflow/sqlite/data
+      - ./tracking-server/mlartifacts:/mlflow/mlartifacts
+    networks:
+      - mlflow-net
+
+  nginx-proxy:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "5000:80"
+    volumes:
+      # 設定ファイル
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d/proxy.conf:/etc/nginx/conf.d/proxy.conf
+    networks:
+      - mlflow-net
+
+networks:
+  mlflow-net:
+    driver: bridge
